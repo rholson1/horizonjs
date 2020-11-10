@@ -1,0 +1,29 @@
+#container {
+    text-align: center;
+}
+
+.bandit-left {
+    stroke: orange;
+}
+.bandit-right {
+    stroke: cornflowerblue;
+}
+.bandit-block {
+    stroke-width: 3;
+    fill: none;
+}
+.bandit-arm {
+    stroke-width: 4;
+}
+
+.bandit-ball {
+    stroke-width: 2;
+}
+
+.rewardtext {
+    text-anchor: middle;
+}
+
+.block-choices {
+    fill: green;
+}
