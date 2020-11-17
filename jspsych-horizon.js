@@ -25,6 +25,42 @@ jsPsych.plugins["horizon"] = (function () {
                     jsPsych.pluginAPI.convertKeyCharacterToKeyCode('.')
                 ],
                 description: 'Response keys for selecting bandit.'
+            },
+            demo: {
+                type: jsPsych.plugins.parameterType.BOOL,
+                array: false,
+                default: false,
+                description: 'In demo mode, the bandits are displayed in the specified state until a key is pressed.'
+            },
+            display: {
+                type: jsPsych.plugins.parameterType.STRING,
+                array: true,
+                default: [[], []],
+                description: 'In demo mode, the display variable is used to set the values displayed.'
+            },
+            post_response_delay: {
+                type: jsPsych.plugins.parameterType.INT,
+                array: false,
+                default: 1000,
+                description: 'Delay after the final response of the trial'
+            },
+            msg_top: {
+                type: jsPsych.plugins.parameterType.HTML_STRING,
+                array: false,
+                default: '',
+                description: 'Message to display at the top of the screen.'
+            },
+            msg_bottom: {
+                type: jsPsych.plugins.parameterType.HTML_STRING,
+                array: false,
+                default: '',
+                description: 'Message to display at the bottom of the screen.'
+            },
+            inst_mode: {
+                type: jsPsych.plugins.parameterType.STRING,
+                array: false,
+                default: '',
+                description: 'Special commands for generating instructions slides.'
             }
         }
     }
@@ -34,14 +70,20 @@ jsPsych.plugins["horizon"] = (function () {
         let processing = false;
         let forced = trial.forced;
         let rewards = trial.rewards;
-        let display = [[], []];
+        let display = trial.display;
         let responses = [];
 
         let size = 50;
+        let max_size = 10;  // assumed maximum size of a bandit
         let stacksize = forced.length;
         let yPos = [...Array(stacksize).keys()];
 
         let after_response = function (info) {
+            if(trial.demo){
+                end_trial();
+                return;
+            }
+
             // process key response
             if (jsPsych.pluginAPI.compareKeys(info.key, trial.choices[0])) {
                 if (forced[active_row] !== 2 && !processing) {
@@ -60,8 +102,8 @@ jsPsych.plugins["horizon"] = (function () {
                     next_trial();
                 }
             }
-
         }
+
         // function to end trial when it is time
         var end_trial = function () {
 
@@ -74,40 +116,44 @@ jsPsych.plugins["horizon"] = (function () {
             }
 
             // Prepare output variables
-            let scores = [];
-            let a = [];
-            for(let i=0; i<forced.length; i++){
-                if(responses[i]==='left'){
-                    scores.push(rewards[0][i]);
-                    a.push(1);
-                } else {
-                    scores.push(rewards[1][i]);
-                    a.push(2);
+            if(trial.demo){
+                trial_data = {};
+            } else {
+                let scores = [];
+                let a = [];
+                for (let i = 0; i < forced.length; i++) {
+                    if (responses[i] === 'left') {
+                        scores.push(rewards[0][i]);
+                        a.push(1);
+                    } else {
+                        scores.push(rewards[1][i]);
+                        a.push(2);
+                    }
                 }
+
+                // Use with Array.reduce() to sum elements of an array.
+                let sum = function (total, num) {
+                    return total + num;
+                }
+
+                // gather the data to store for the trial
+                var trial_data = {
+                    "responses": responses,
+                    "rewards": trial.rewards,
+                    "scores": scores,
+                    "sum_scores": scores.reduce(sum),
+                    "a": a
+                };
             }
 
-            // Use with Array.reduce() to sum elements of an array.
-            let sum = function(total, num){
-                return total + num;
-            }
-
-            // gather the data to store for the trial
-            var trial_data = {
-                "responses": responses,
-                "rewards": trial.rewards,
-                "scores": scores,
-                "sum_scores": scores.reduce(sum),
-                "a": a
-            };
-
-            // After a 1-s delay, clear display and move on.
+            // After a delay, clear display and move on.
             jsPsych.pluginAPI.setTimeout(function(){
                 // clear the display
                 display_element.innerHTML = '';
 
                 // move on to the next trial
                 jsPsych.finishTrial(trial_data);
-            }, 1000);
+            }, trial.post_response_delay);
         };
 
         var keyboardListener = jsPsych.pluginAPI.getKeyboardResponse({
@@ -118,24 +164,30 @@ jsPsych.plugins["horizon"] = (function () {
             allow_held_key: false
         });
 
+        display_element.innerHTML =
+            '<div id="horizon-top"></div>' +
+            '<div id="horizon-container"></div>' +
+            '<div id="horizon-bottom"></div>';
 
-        display_element.innerHTML = '<div id="horizon-container"></div>'
-
-        // make svg container
-        let svg = d3.select('#horizon-container').append('svg')
-            .attr('width', 800)
-            .attr('height', 800);
+        $('#horizon-top').html(trial.msg_top);
+        $('#horizon-bottom').html(trial.msg_bottom);
 
         let active_row = 0; // which row is active
         let yOffset = 20;
-        let xOffset = [300, 500];
+        let xOffset = [100 - size / 2, 300 - size / 2];
+
+        // make svg container
+        let svg = d3.select('#horizon-container').append('svg')
+            .attr('width', 400)
+            .attr('height', size * max_size + yOffset * 2);
+
 
         let create_bandits = function () {
             svg.selectAll('rect')
                 .data(d3.cross(xOffset, yPos))
                 .enter().append('rect')
                 .attr('x', d => d[0])
-                .attr('y', d => d[1] * size)
+                .attr('y', d => d[1] * size + yOffset)
                 .attr('height', size)
                 .attr('width', size)
                 .attr('class', function (d, i) {
@@ -150,7 +202,6 @@ jsPsych.plugins["horizon"] = (function () {
                     return 'block-' + Math.floor(i / yPos.length) + '-' + d[1];
                 });
         }
-        create_bandits();
 
         let create_bandit_arms = function () {
             let sides = ['left', 'right'];
@@ -177,10 +228,16 @@ jsPsych.plugins["horizon"] = (function () {
                     .attr('id', 'bandit-ball-' + sides[i]);
             }
         }
-        create_bandit_arms();
 
-        let animate_arm = function () {
-            let side = responses[responses.length - 1];
+        // Suppress drawing the bandits for blank instructions slides
+        if(trial.inst_mode !== 'blank'){
+            create_bandits();
+            create_bandit_arms();
+        }
+
+        let animate_arm = function (side) {
+            // side should be 'right' or 'left'
+
             let arm = d3.select('#bandit-arm-' + side);
             let oldy2 = parseFloat(arm.attr('y2'));
             arm.transition()
@@ -212,7 +269,8 @@ jsPsych.plugins["horizon"] = (function () {
 
         let next_trial = function () {
             clear_choices();
-            animate_arm();
+            let side = responses[responses.length - 1];
+            animate_arm(side);
             jsPsych.pluginAPI.setTimeout(function () {
                 active_row += 1;
                 update_text();
@@ -226,7 +284,7 @@ jsPsych.plugins["horizon"] = (function () {
                 if(active_row === forced.length){
                     end_trial()
                 }
-            }, 1000);
+            }, trial.post_response_delay);
         }
 
         let update_text = function () {
@@ -247,7 +305,7 @@ jsPsych.plugins["horizon"] = (function () {
                 .enter().append('text')
                 .attr('x', 0)
                 .attr('y', function (d, i) {
-                    return yPos[i] * size + size / 2;
+                    return yPos[i] * size + size / 2 + yOffset;
                 })
                 .text(function (d, i) {
                     return d;
@@ -270,17 +328,31 @@ jsPsych.plugins["horizon"] = (function () {
             }
         }
 
-        // Highlight the choices for the first trial
-        display_choices();
+        // Demonstrate the lever animation
+        if(trial.inst_mode === 'lever') {
+            jsPsych.pluginAPI.setTimeout(function(){
+                animate_arm('right');
+            }, 300);
+        }
+
+        if(trial.demo){
+            if(trial.inst_mode === 'bandits') {
+                update_text();
+            } else if(trial.inst_mode === 'prompt') {
+                active_row = display[0].length;
+                update_text();
+                display_choices();
+            }
+        } else {
+            // Highlight the choices for the first trial
+            display_choices();
+        }
 
         // Remove the highlight from all blocks
         let clear_choices = function () {
             d3.selectAll('.bandit-block')
                 .classed('block-choices', false);
         }
-
-
-
     };
 
     return plugin;

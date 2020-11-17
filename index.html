@@ -65,12 +65,66 @@
 
     let timeline = [];
 
+
+    /*** Variables for instructions slides ***
+    The stack size is determined by the length of 'forced'.
+    inst_mode controls the "mode" of the slide.
+      blank: no bandits are displayed
+      bandits: display bandits and the text in the display variable
+      lever: display bandits with a lever animation
+      prompt: display bandits and the text in the display variable as well as the green prompt boxes.
+    display contains the values to be displayed in the left and right bandits.
+    msg is the text displayed at the top of the screen.  HTML tags can be included (e.g., <br> for a line break).
+    */
+    let instructions = [
+        { forced: [1, 2, 1, 1, 0, 0, 0, 0, 0, 0],  display: [[], []], inst_mode: 'blank',  msg: 'Welcome! Thank you for volunteering for this experiment.' },
+        { forced: [1, 2, 1, 1, 0, 0, 0, 0, 0, 0],  display: [[], []], inst_mode: 'bandits',  msg: 'In this game we would like you to choose between two stacks of boxes.' },
+        { forced: [1, 2, 1, 1, 0, 0, 0, 0, 0, 0],  display: [[], []], inst_mode: 'bandits',  msg: 'The stacks of boxes look like this' },
+        { forced: [1, 2, 1, 1, 0, 0, 0, 0, 0, 0],  display: [[], []], inst_mode: 'lever',  msg: 'Every time you choose one stack, the lever will be pulled like this ...' },
+        { forced: [1, 2, 1, 1, 0, 0, 0, 0, 0, 0],  display: [[77], ['XX']], inst_mode: 'bandits',  msg: '... and the points you earn will be shown like this.  For example, in this case, you chose the left stack this box is giving you 77 points. ' },
+        { forced: [1, 2, 1, 1, 0, 0, 0, 0, 0, 0],  display: [[], []], inst_mode: 'bandits',  msg: 'Most of the time you will find about the same number of points for all the boxes in a stack, but some may give you a few more or a few less points than others.  ' },
+        { forced: [1, 2, 1, 1, 0, 0, 0, 0, 0, 0],  display: [['XX'], [52]], inst_mode: 'bandits',  msg: 'For example, the average reward for the stack on the right might be 50 points, but the first box might give us 52 points ...' },
+        { forced: [1, 2, 1, 1, 0, 0, 0, 0, 0, 0],  display: [['XX', 'XX'], [52, 56]], inst_mode: 'bandits',  msg: '... on the second box we might get 56 points ... ' },
+        { forced: [1, 2, 1, 1, 0, 0, 0, 0, 0, 0],  display: [['XX', 'XX', 'XX'], [52, 56, 45]], inst_mode: 'bandits',  msg: '... if we open a third box on the right we might get 45 points this time ... ' },
+        { forced: [1, 2, 1, 1, 0, 0, 0, 0, 0, 0],  display: [[], []], inst_mode: 'bandits',  msg: 'On each game, either the left or the right stack will give you more points on average and is the better option to choose for that game.  ' },
+        { forced: [1, 2, 1, 1, 0, 0, 0, 0, 0, 0],  display: [[], []], inst_mode: 'bandits',  msg: 'To make your choice:<br> Press < to play the left stack <br> Press > to play the right stack' },
+        { forced: [1, 2, 1, 1, 0, 0, 0, 0, 0, 0],  display: [[], []], inst_mode: 'bandits',  msg: 'On each game you can tell how many choices you will have by the height of the stacks.  For example, when the bandits are 10 boxes high, there are 10 trials in each game ... ' },
+        { forced: [1, 2, 1, 1, 0], display: [[], []], inst_mode: 'bandits',  msg: '... when the stacks are 5 boxes high there are only 5 trials in the game.' },
+        { forced: [1, 2, 1, 1, 0, 0, 0, 0, 0, 0],  display: [[], []], inst_mode: 'bandits',  msg: 'Finally, for the first 4 choices in each game we will tell you which option to play.  ' },
+        { forced: [1, 2, 1, 1, 0, 0, 0, 0, 0, 0],  display: [[], []], inst_mode: 'prompt',  msg: 'There will be a green square inside the box we want you to open and you must press the button to choose this option so you can collect your points and move on the next trial. For example, if you are instructed to choose the left box on the first trial, you will see this:' },
+        { forced: [1, 2, 1, 1, 0, 0, 0, 0, 0, 0],  display: [[77], ['XX']], inst_mode: 'prompt',  msg: 'If you are instructed to choose the right box on the second trial, you will see this:' },
+        { forced: [1, 2, 1, 1, 0, 0, 0, 0, 0, 0],  display: [[77, 'XX', 65, 67], ['XX', 52, 'XX', 'XX']], inst_mode: 'prompt',  msg: 'For the last few choices in each game, you will see two green squares which means you can pick either stack. Each time you see 2 new stacks of boxes on the screen, a new game is starting. ' },
+        { forced: [1, 2, 1, 1, 0, 0, 0, 0, 0, 0],  display: [[], []], inst_mode: 'blank',  msg: "So ... to be sure that everything makes sense let's go through some things ..."},
+        { forced: [1, 2, 1, 1, 0, 0, 0, 0, 0, 0],  display: [[], []], inst_mode: 'blank',  msg: 'Press space when you are ready to begin.  Good luck!' }
+    ]
+
+    let horizon_inst = {
+        type: 'horizon',
+        forced: jsPsych.timelineVariable('forced'),
+        rewards: [[9, 13, 74, 56, 87, 54, 77, 86, 76, 35], [43, 55, 37, 36, 77, 65, 33, 34, 62, 93]],
+        choices: jsPsych.ALL_KEYS,
+        demo: true,
+        display: jsPsych.timelineVariable('display'),
+        post_response_delay: 0,
+        msg_top: jsPsych.timelineVariable('msg'),
+        msg_bottom: 'Press any key to continue',
+        inst_mode: jsPsych.timelineVariable('inst_mode')
+    }
+
+    let instruction_trials = {
+        timeline: [horizon_inst],
+        timeline_variables: instructions
+    }
+
+    timeline.push(instruction_trials);
+
+/*
     let welcome = {
         type: "html-keyboard-response",
         stimulus: "Welcome to the Experiment.  Press any key to begin."
     }
     timeline.push(welcome);
-
+*/
 
     var score_feedback = {
         type: "html-keyboard-response",
@@ -84,138 +138,39 @@
         }
     };
 
-    // this is all 80 trials... want to give feedback every 10 trials
-    let experiment_trials = {
-        type: 'horizon',
-        timeline_variables: full_design
-    }
-
-
     let trial = {
         type: 'horizon',
         forced: jsPsych.timelineVariable('forced'),
         rewards: jsPsych.timelineVariable('rewards')
     }
 
+    // Create blocks of 10 trials
     for(let j=0; j<full_design.length; j+=10){
-
-        let trials_procedure = {
-            timeline: [trial],
-            timeline_variables: full_design.slice(10*j, 10*(j+1))
-        }
+        timeline.push({
+            type: "html-keyboard-response",
+            stimulus: function() {
+                return "<p>Beginning block " + (j/10+1) + " of " + full_design.length / 10 + ".</p>" +
+                    "<p>Press any key to begin.</p>"
+            }
+        });
 
         timeline.push({
             timeline: [trial],
             timeline_variables: full_design.slice(j, j+10)
         });
 
-        //timeline.push(trials_procedure);  // block of 10 trials
         timeline.push(score_feedback);    // feedback slide
     }
 
-
-
-
+/*
     let horizon = {
         type: 'horizon',
         forced: [2, 1, 1, 1, 0, 0, 0, 0, 0, 0],
         rewards: [[9, 13, 74, 56, 87, 54, 77, 86, 76, 35], [43, 55, 37, 36, 77, 65, 33, 34, 62, 93]]
     }
 
-    //timeline.push(horizon);
-
-
-
-    var instructions = {
-        type: "html-keyboard-response",
-        stimulus: "<p>In this experiment, a circle will appear in the center " +
-            "of the screen.</p><p>If the circle is <strong>blue</strong>, " +
-            "press the letter F on the keyboard as fast as you can.</p>" +
-            "<p>If the circle is <strong>orange</strong>, press the letter J " +
-            "as fast as you can.</p>" +
-            "<div style='width: 700px;'>"+
-            "<div style='float: left;'><img src='jspsych-6.1.0/examples/img/blue.png'></img>" +
-            "<p class='small'><strong>Press the F key</strong></p></div>" +
-            "<div class='float: right;'><img src= 'jspsych-6.1.0/examples/img/orange.png'></img>" +
-            "<p class='small'><strong>Press the J key</strong></p></div>" +
-            "</div>"+
-            "<p>Press any key to begin.</p>",
-        post_trial_gap: 2000
-    };
-    //timeline.push(instructions);
-
-    var test_stimuli = [
-        { stimulus: "jspsych-6.1.0/examples/img/blue.png", data: {test_part: 'test', correct_response: 'f'}},
-        { stimulus: "jspsych-6.1.0/examples/img/orange.png", data: {test_part: 'test', correct_response: 'j'}}
-    ];
-
-    var fixation = {
-        type: 'html-keyboard-response',
-        stimulus: '<div style="font-size:60px;">+</div>',
-        choices: jsPsych.NO_KEYS,
-        trial_duration: function() {
-            // Here sampleWithoutReplacement returns an array of length 1, so add [0] to select the value
-            return jsPsych.randomization.sampleWithoutReplacement([250, 500, 750, 1000, 1250, 1500, 1750, 2000], 1)[0];
-        },
-        data: {test_part: 'fixation'}
-    }
-
-    var test = {
-        type: "image-keyboard-response",
-        stimulus: jsPsych.timelineVariable('stimulus'),
-        choices: ['f', 'j'],
-        data: jsPsych.timelineVariable('data'),
-        on_finish: function(data) {
-            data.correct = data.key_press == jsPsych.pluginAPI.convertKeyCharacterToKeyCode(data.correct_response);
-        }
-    }
-
-    var test_procedure = {
-        timeline: [fixation, test],
-        timeline_variables: test_stimuli,
-        randomize_order: true,
-        repetitions: 5
-    }
-
-    //timeline.push(test_procedure);
-
-    var debrief_block = {
-        type: "html-keyboard-response",
-        stimulus: function() {
-
-            var trials = jsPsych.data.get().filter({test_part: 'test'});
-            var correct_trials = trials.filter({correct: true});
-            var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
-            var rt = Math.round(correct_trials.select('rt').mean());
-
-            return "<p>You responded correctly on "+accuracy+"% of the trials.</p>"+
-                "<p>Your average response time was "+rt+"ms.</p>"+
-                "<p>Press any key to complete the experiment. Thank you!</p>";
-
-        }
-    };
-
-
-
-    //timeline.push(debrief_block);
-
-
-/*    var blue_trial = {
-        type: 'image-keyboard-response',
-        stimulus: 'jspsych-6.1.0/examples/img/blue.png',
-        choices: ['f', 'j']
-    };
-
-    var orange_trial = {
-        type: 'image-keyboard-response',
-        stimulus: 'jspsych-6.1.0/examples/img/orange.png',
-        choices: ['f', 'j']
-    }
-
-    timeline.push(blue_trial, orange_trial);*/
-
-
-
+    timeline.push(horizon);
+*/
 
     jsPsych.init({
         timeline: timeline,
@@ -223,8 +178,6 @@
             jsPsych.data.displayData();
         }
     });
-
-
 
 </script>
 </html>

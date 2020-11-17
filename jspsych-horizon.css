@@ -2,6 +2,10 @@
     text-align: center;
 }
 
+#horizon-top, #horizon-container, #horizon-bottom {
+    clear: both;
+}
+
 .bandit-left {
     stroke: orange;
 }
