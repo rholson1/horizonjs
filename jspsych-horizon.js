@@ -70,7 +70,13 @@ jsPsych.plugins["horizon"] = (function () {
         let processing = false;
         let forced = trial.forced;
         let rewards = trial.rewards;
-        let display = trial.display;
+        let display;
+        if(trial.demo){
+            display = trial.display;
+        } else {
+            display = [[], []];
+        }
+
         let responses = [];
 
         let size = 50;
